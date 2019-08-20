@@ -1,3 +1,5 @@
+@import url(https://cdn.jsdelivr.net/gh/tonsky/FiraCode@1.207/distr/fira_code.css);
+
 .leftCol {
   left:-8.33%;
   text-align: left;
@@ -412,10 +414,6 @@
   font-weight: bold
 }
 
-
-
-
-@import url(//cdn.rawgit.com/tonsky/FiraCode/1.205/distr/fira_code.css);
 
 .reveal pre,
 .reveal code {

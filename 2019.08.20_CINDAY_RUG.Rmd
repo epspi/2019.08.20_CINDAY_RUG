@@ -1,7 +1,7 @@
 ---
-title:  "Recent Tools<br>for<br>Time Series<br>in <b>R</b>"
-author: "Eugene Pyatigorsky / Kroger R&D"
-date:   "<b>CIN-DAY RUG</b> March 2018"
+title:  '<b>Tidy</b> Forecasting<br>in <b>R</b><br>with Tidyverts'
+author: 'Eugene Pyatigorsky / Full Stack Science'
+date:   '<b>CIN-DAY RUG</b> August 2019'
 output: 
   revealjs::revealjs_presentation:
     incremental: true
@@ -26,437 +26,223 @@ knitr::opts_chunk$set(echo = F, cache = T, warning = F, message = F)
 
 # install.packages("revealjs")
 # install.packages("wrapr")
-# devtools::install_github("business-science/tibbletime")
-# devtools::install_github("business-science/timetk")
-# devtools::install_github("business-science/sweep")
 # devtools::install_github("RamiKrispin/TSstudio")
 # devtools::install_github("tidyverts/tsibble", build_vignettes = TRUE)
 
 library(tidyverse)
-library(TSstudio)
-library(forecast)
 library(tsibble)
-library(tibbletime)
-library(sweep)
-library(timetk)
+library(fable)
+library(fasster)
 library(lubridate)
+library(data.table)
 ```
 
+----
+
+The slides at:
+https://github.com/epspi/CINDAY_RUG_2019.08.20
+
+----
 
 ## Agenda
-- Interactive visual exploration (**TSstudio**)
-- From `ts` to **tidy** data (**tsibble** and **timetibble**)
-- Easier modeling workflow (**timetk** and **sweep**)
+- What have Rob Hyndman & Monash Team been up to?
+- From `ts` to **tidy** data (**tsibble** by Earo Wang)
+- Time series visualization and feature extraction (**feasts**)
+- Tidy modeling framework (**fable**)
+- Extensibility, custom models (**fasSter** by Mitchell O'Hara-Wild) 
+
+----
+
+Let's make one thing clear...
+
+**All of this tidy forecasting goodness is brought to you by Hyndman, et. al.**
 
 
+----
 
-## A little local data
+![Earo Wang @ earo.me](figures/earo.png)
 
-![Cincinnati Building Permits since 2010](figures/cinci_permits.png)
+----
+
+![Mitchell O'Hara-Wild @ mitchelloharawild.com](figures/mitchell.png)
+
+----
+
+![Di Cook @ dicook.org](figures/di.png)
+
+----
+
+![](figures/mitchell-slides.png)
+
+----
+
+![CIN-DAY RUG March 2018 @ P&G](figures/cindayrug.png)
+https://github.com/epspi/CIN-DAY_RUG_03.14.2018
+
+
+----
+
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/ohiOPyFsrqQ" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+----
+
+![Cincinnati Building Permits since 2010](figures/traffic.png)
 
 ## Fetch and wrangle
 
 ```{r message=FALSE, warning=FALSE, include = F}
-data_file <- "data/permits.csv"
-data_url <- "https://data.cincinnati-oh.gov/api/views/uhjb-xac9/rows.csv?accessType=DOWNLOAD"
+data_file = "data/traffic.csv"
+data_url  = "https://data.cincinnati-oh.gov/api/views/rvmt-pkmq/rows.csv?accessType=DOWNLOAD"
 
 # Download data if not already in place
 if (!file.exists(data_file)) download.file(data_url, data_file)
 
-permits <- read_csv(data_file) %>% 
-  select(
-    APP_DT = APPLIEDDATE,
-    # ISU_DT = ISSUEDDATE,
-    # CPL_DT = COMPLETEDDATE,
-    CITY = ORIGINALCITY,
-    STATE = ORIGINALSTATE,
-    ZIP = ORIGINALZIP,
-    HOOD = NEIGHBORHOOD,
-    DESC = DESCRIPTION,
-    PERMIT_CLS = PERMITCLASSMAPPED,
-    WORK_CLS = WORKCLASSMAPPED,
-    PERMIT_TYP = PERMITTYPEMAPPED,
-    UNITS,
-    FEE
-  ) %>% 
-  mutate_at(select_vars(names(.), contains("_DT")),
-            as.Date, format = "%m/%d/%Y") %>% 
-  # mutate_at(vars(DESCRIPTION, ORIGINALCITY, ORIGINALSTATE))
-  mutate_if(. %>% {class(.) == "character"},      # remove extra ""
-            . %>% {gsub('\\"', '', .)}) %>%       # in character cols
-  mutate(FEE = as.numeric(gsub("[$]", "", FEE)))
-  
+traffic = fread(data_file) %>% 
+  .[, .(CRASHDATE = mdy_hms(CRASHDATE),
+        SNA_NEIGHBORHOOD,
+        CRASHSEVERITY = str_extract(CRASHSEVERITY, "^\\d") ,
+        GENDER = str_extract(GENDER, "\\w+$"))] %>% 
+  .[GENDER != "UNKNOWN"] %>% 
+  na.omit()
 ```
 
 
 ```{r}
-glimpse(permits)
+glimpse(traffic)
 ```
 
-[Cincinnati Building Permits Dataset](https://data.cincinnati-oh.gov/Thriving-Healthy-Neighborhoods/Cincinnati-Building-Permits/uhjb-xac9/data)
-
+[Cincinnati Traffic Crash Reports (CPD)](https://data.cincinnati-oh.gov/Safer-Streets/Traffic-Crash-Reports-CPD-/rvmt-pkmq/data)
 
 ----
 
-```{r}
-permits %>% 
-  group_by(APP_DT) %>% 
-  summarise(APPS = n(),
-            UNITS = sum(UNITS, na.rm = T)) %>% 
-  ggplot(aes(APP_DT, APPS)) + 
-  geom_line() + 
-  labs(title = "Applications over time")
-```
+### A data frame for time series
+
+![](figures/tsibble.png)
 
 ----
 
+`as_tsibble`
+
+```{r, echo = TRUE}
+traffic_ts = traffic %>% 
+  .[, .(accidents = .N)
+    , by = .(CRASHDATE, SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER)] %>% 
+  as_tsibble(key   = c(SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER),
+             index = CRASHDATE)
+```
 
 ```{r}
-prm_typ <- permits %>% 
-  group_by(APP_DT, PERMIT_TYP) %>%
-  summarise(APPS = n(),
-            UNITS = sum(UNITS, na.rm = T)) %>%
+glimpse(traffic_ts)
+```
+
+
+## Easy Calendar Aggregations
+
+```{r, echo = TRUE}
+traffic_hrly = traffic_ts %>% 
+  group_by_key() %>% 
+  index_by(date_hour = ~lubridate::floor_date(., unit = "hour")) %>% 
+  summarise(accidents = sum(accidents)) %>% 
   ungroup()
 ```
 
-
 ```{r}
-prm_typ %>% 
-  ggplot(aes(APP_DT, APPS, color = PERMIT_TYP)) + 
-  geom_line() + 
-  labs(title = "Applications over time, by permit type")
-```
-
-## Some jobs more common
-
-```{r}
-count(prm_typ, PERMIT_TYP, sort = T)
-```
-
-
-----
-
-
-
-## TS Studio
-> The TSstudio package provides a set of tools 
-> for descriptive analysis of a time series data
-> supporting “ts”, “mts”, “zoo” and “xts” objects.
-
-<br>
-<h3>Wrappers for <b class="purple">Plot.ly</b></h3>
-<br>
-from [Rami Krispin](https://github.com/RamiKrispin/TSstudio)
-
----
-
-### Make a monthly time series
-
-```{r, echo = T}
-prm_mth <- permits %>% 
-  mutate(YR_MTH = format(APP_DT, "%Y_%m")) %>% 
-  group_by(YR_MTH) %>%
-  summarise(APPS = n(),
-            UNITS = sum(UNITS, na.rm = T)) %>%
-  ungroup() %>% 
-  arrange(YR_MTH) %>% 
-  filter(YR_MTH < "2018_03")
-
-
-(prm_ts_mth <- prm_mth %>% 
-  {ts(data = .$APPS, 
-      start = as.numeric(unlist(strsplit(.$YR_MTH[1], "_"))),
-      frequency = 12)})
-```
-
-----
-```{r, echo = T}
-ts_plot(prm_ts_mth, title = "Monthly Permit Applications")
+glimpse(traffic_hrly)
 ```
 
 ----
 
-```{r}
-# permits %>%
-#   mutate(YR_MTH = format(APP_DT, "%Y_%m")) %>% 
-#   group_by(YR_MTH, PERMIT_TYP) %>%
-#   summarise(APPS = n(),
-#             UNITS = sum(UNITS, na.rm = T)) %>%
-#   ungroup() %>% 
-#   arrange(YR_MTH) %>% 
-#   select(-UNITS) %>% 
-#   spread(PERMIT_TYP, APPS) %>% 
-#   arrange(YR_MTH) %>% 
-#   {ts()}
-```
+<p class="purple">what about missing data?</p>
 
-## Nice seasonality plots
-```{r echo=T, warning=FALSE}
-ts_seasonal(prm_ts_mth, type = "normal")
+
+traditional approaches
+
+```{r, echo = TRUE}
+data.table(traffic_hrly) %>% 
+  .[, .N, by = .(hour = lubridate::hour(date_hour))] %>% 
+  head()
 ```
 
 ----
 
-```{r echo=T, warning=FALSE}
-ts_seasonal(prm_ts_mth, type = "cycle")
-```
+`has_gaps` helper
 
-
-----
-```{r echo=T, warning=FALSE}
-ts_seasonal(prm_ts_mth, type = "box")
-```
-
-## Convenient type="all"
-
-```{r warning=FALSE}
-ts_seasonal(prm_ts_mth, type = "all")
-```
-
-
-## Fancy plots, too
-
-- heatmaps (`ts_heatmap`)
-- 3d surface plots (`ts_surface`)
-- polar plot (`ts_polar`)
-- seasonality decomposition (`ts_decompose`)
-- auto-correlation (`ts_acf`, `ts_pacf`, `ts_lags`)
-- forecast fitted + prediction vs actuals (`test_forecast`)
-
-----
-
-### Additive & multiplicative together
-```{r echo=T}
-ts_decompose(prm_ts_mth, type = "both")
+```{r, echo = TRUE}              
+has_gaps(traffic_hrly) %>% sample_n(5) 
 ```
 
 ----
 
-```{r echo=T}
-ts_pacf(prm_ts_mth, lag.max = 24)
-```
+`count_gaps` helper
 
+```{r eval=FALSE, echo=TRUE}
+count_gaps(traffic_hrly) %>% sample_n(5)
+```
 
 ----
-```{r echo=T}
-ts_lags(prm_ts_mth)
+
+### pad implicit missing values
+
+```{r, echo = TRUE}
+traffic_hrly = traffic_hrly %>% fill_gaps(accidents = 0)
 ```
 
+----
 
-## Residuals plot
-```{r}
+### Functional rolling windows
+![`slide`, `tile`, `stretch`](figures/rollwindow.gif)
 
-# set the forecast horizon for 12 months
-h <- 12
 
-# Split the data into training and testing sets (leaving the last 12 months for testing)
-split_prm <- ts_split(prm_ts_mth, sample.out = h)
-train <- split_prm$train
-test <- split_prm$test
+## Time Series Decomposition & Plotting Helpers
 
-# Building a model on the training set
-fit <- auto.arima(train, lambda = BoxCox.lambda(train))
+![feasts @ tidyverts](figures/feasts.png)
 
-# Checking the residuals
-check_res(fit)
+## Tidy modeling
 
+![fable @ tidyverts](figures/fable.png)
+
+## Pipeline workflows!
+
+
+```{r, echo = TRUE}
+traffic_sm = traffic_hrly %>% 
+  index_by(date = yearweek(date_hour)) %>% 
+  summarise(accidents = sum(accidents))
+
+traffic_sm %>% 
+  model(ETS(accidents)) %>% 
+  forecast(h = "3 months") %>% 
+  autoplot(traffic_sm)
 ```
 
+----
 
+![](figures/mitchell-fasster.png)
 
-## Evaluating forecasts visually
+----
 
-```{r}
-fc <- forecast(fit, h = h)
-test_forecast(actual = prm_ts_mth, forecast.obj = fc, test = test)
-```
+## Tons of flexibility
 
+![](figures/fasster-specials.png)
 
-## ts isn't **tidy**
-Two options:
+## In theory it's this easy!
+
+```{r, eval = FALSE, echo = TRUE}
+traffic_hrly %>% 
+  model(
+    ets  = ETS(accidents),
+    fstr = fasster(accidents ~ weekday %S% (trig(24, 16) + poly(2)))
+  ) %>% 
+  mutate(
+    ensemble = (ets + fstr)/2
+  ) %>% 
+  select(ensemble) %>%
+  forecast(h = "3 months") %>% 
+  autoplot(traffic_hrly)
   
-<br>
-
-
-- **tibbletime** from [Business Science](http://www.business-science.io/)
-- **tsibble** from [Aero Wang](https://earo.me/) under Rob Hyndman 
-- Both define an enchanced `tbl_df`
-
-
-
-## Back to the start
-
-```{r echo = T}
-(prm_typ <- permits %>% 
-  group_by(APP_DT, PERMIT_TYP) %>%
-  summarise(APPS = n(),
-            UNITS = sum(UNITS, na.rm = T)) %>%
-  ungroup())
 ```
 
-## tsibble
-
-
-```{r echo = T}
-(prm_tsbl <- as_tsibble(prm_typ, key = id(PERMIT_TYP)))
-```
-
-- each observation **uniquely** identified by index and key
-- optionally **multi-level** and **cross-category** index
-
-## Convenient <b class="purple">dplyr</b> aggregation
-
-
-```{r echo = T}
-prm_mth <- prm_tsbl %>%
-  group_by(PERMIT_TYP) %>%
-  tsummarise(
-    date = yearmonth(APP_DT),
-    min_units = max(UNITS, na.rm = TRUE),
-    max_units = min(UNITS, na.rm = TRUE)
-  )
-```
-
-
-
-- special `tsummarise` function
-- aware of date index
-- plays nicely with **lubridate** functions 
-  
-  
-   
-   
-## Convenient <b class="purple">dplyr</b> aggregation
-
-```{r}
-prm_mth
-```
-
-## Easy date padding
-
-```{r}
-head(prm_tsbl, 5)
-```
-
-```{r echo=T}
-fill_na(prm_tsbl, APPS = 0L) %>% head(8)
-```
-
-
-
-## timetibble
-
-
-```{r echo = T}
-(prm_tmtbl <- as_tbl_time(permits, index = APP_DT) %>% arrange(APP_DT))
-```
-
-- also aware of time index
-- doesn't require uniquely indexed records
-- syntactic sugar for filtering by date
-
-
----- 
-
-### Handy filtering syntax
-
-```{r echo = T}
-filter_time(prm_tmtbl, '2014' ~ '2016')
-```
-  
-  
-- Useful for interactive exploration, but definitely not for programmatic use
 
 ----
 
-### Temporal aggregation more mysterious
-
-```{r echo = T}
-prm_tmtbl %>% 
-  group_by(PERMIT_TYP) %>% 
-  collapse_by(period = "monthly") %>% 
-  group_by(APP_DT, add = T) %>% 
-  summarise(UNITS = mean(UNITS, na.rm = T))
-
-
-```
-  
-
-## <b class="purple">tidy</b> forecasting with helpers
-
-The forecasting workflow involves a few basic steps:
-
-1. Coerce to a `ts` object class.
-2. Apply a model (or set of models)
-3. Forecast the models (similar to predict)
-4. Tidy the forecast
-
-<br>
-
-- Packages **timetk** and **sweep** help make process of going from grouped `tibble` -> `ts` -> `forecast` -> summary `tibble` easier.
-
-## Autodetect time index
-
-```{r echo = T}
-prm_daily <- permits %>% 
-  group_by(APP_DT) %>% 
-  summarise(APPS = n(), UNITS = sum(UNITS, na.rm = T))
-            
-prm_daily %>% tk_index() %>% tk_get_timeseries_summary() %>% glimpse
-```
-
-
-
-## Convert to ts
-
-```{r echo = T}
-daily_ts <- prm_daily %>% 
-  {tk_ts(., start = c(year(min(.$APP_DT)), yday(min(.$APP_DT))/365.25),
-    freq = 365.25)}
-
-head(daily_ts)
-class(daily_ts)
-```
-
-
-
-## ... and back to tibble
-```{r, echo = T}
-tk_tbl(daily_ts, rename_index = "APP_DT")
-```
-
-
-
-
-## Sweeping up model results
-Remember our ARIMA model `fit`?
-```{r}
-summary(fit)
-```
-
-
-## Sweeping up model results
-
-**sweep** is just like **broom** but for models produced by **forecast**
-
-
-```{r echo = T}
-sw_tidy(fit)
-```
-
------
-
-### glance at accuracy measures
-
-```{r echo = T}
-sw_glance(fit) %>% glimpse
-```
-
-## End
-
-<br>
-<br>
-<br>
-Find this presentation on Github:
-https://github.com/epspi/CIN-DAY_RUG_03.14.2018
-
+**questions?**

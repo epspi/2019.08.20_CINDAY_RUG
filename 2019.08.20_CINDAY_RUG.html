@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Eugene Pyatigorsky / Full Stack Science" />
+  <title>Tidy Forecasting in R with Tidyverts</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="2019.08.20_CINDAY_RUG_files/reveal.js-3.3.0.1/css/reveal.css"/>
+
+
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  { color: #cccccc; background-color: #303030; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ffcfaf; } /* Alert */
+code span.an { color: #7f9f7f; font-weight: bold; } /* Annotation */
+code span.at { } /* Attribute */
+code span.bn { color: #dca3a3; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #f0dfaf; } /* ControlFlow */
+code span.ch { color: #dca3a3; } /* Char */
+code span.cn { color: #dca3a3; font-weight: bold; } /* Constant */
+code span.co { color: #7f9f7f; } /* Comment */
+code span.cv { color: #7f9f7f; font-weight: bold; } /* CommentVar */
+code span.do { color: #7f9f7f; } /* Documentation */
+code span.dt { color: #dfdfbf; } /* DataType */
+code span.dv { color: #dcdccc; } /* DecVal */
+code span.er { color: #c3bf9f; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #c0bed1; } /* Float */
+code span.fu { color: #efef8f; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #7f9f7f; font-weight: bold; } /* Information */
+code span.kw { color: #f0dfaf; } /* Keyword */
+code span.op { color: #f0efd0; } /* Operator */
+code span.ot { color: #efef8f; } /* Other */
+code span.pp { color: #ffcfaf; font-weight: bold; } /* Preprocessor */
+code span.sc { color: #dca3a3; } /* SpecialChar */
+code span.ss { color: #cc9393; } /* SpecialString */
+code span.st { color: #cc9393; } /* String */
+code span.va { } /* Variable */
+code span.vs { color: #cc9393; } /* VerbatimString */
+code span.wa { color: #7f9f7f; font-weight: bold; } /* Warning */
+</style>
+
+<link rel="stylesheet" href="2019.08.20_CINDAY_RUG_files/reveal.js-3.3.0.1/css/theme/simple.css" id="theme">
+
+
+  <!-- some tweaks to reveal css -->
+  <style type="text/css">
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.5em;  }
+    .reveal h3 { font-size: 1.25em;	}
+    .reveal h4 { font-size: 1em;	}
+
+    .reveal .slides>section,
+    .reveal .slides>section>section {
+      padding: 0px 0px;
+    }
+
+
+
+    .reveal table {
+      border-width: 1px;
+      border-spacing: 2px;
+      border-style: dotted;
+      border-color: gray;
+      border-collapse: collapse;
+      font-size: 0.7em;
+    }
+
+    .reveal table th {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      font-weight: bold;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+    .reveal table td {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+
+  </style>
+
+    <style type="text/css">code{white-space: pre;}</style>
+
+    <link rel="stylesheet" href="www/theme.css"/>
+
+<!-- Printing and PDF exports -->
+<script id="paper-css" type="application/dynamic-css">
+
+/* Default Print Stylesheet Template
+   by Rob Glazebrook of CSSnewbie.com
+   Last Updated: June 4, 2008
+
+   Feel free (nay, compelled) to edit, append, and
+   manipulate this file as you see fit. */
+
+
+@media print {
+
+	/* SECTION 1: Set default width, margin, float, and
+	   background. This prevents elements from extending
+	   beyond the edge of the printed page, and prevents
+	   unnecessary background images from printing */
+	html {
+		background: #fff;
+		width: auto;
+		height: auto;
+		overflow: visible;
+	}
+	body {
+		background: #fff;
+		font-size: 20pt;
+		width: auto;
+		height: auto;
+		border: 0;
+		margin: 0 5%;
+		padding: 0;
+		overflow: visible;
+		float: none !important;
+	}
+
+	/* SECTION 2: Remove any elements not needed in print.
+	   This would include navigation, ads, sidebars, etc. */
+	.nestedarrow,
+	.controls,
+	.fork-reveal,
+	.share-reveal,
+	.state-background,
+	.reveal .progress,
+	.reveal .backgrounds {
+		display: none !important;
+	}
+
+	/* SECTION 3: Set body font face, size, and color.
+	   Consider using a serif font for readability. */
+	body, p, td, li, div {
+		font-size: 20pt!important;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		color: #000;
+	}
+
+	/* SECTION 4: Set heading font face, sizes, and color.
+	   Differentiate your headings from your body text.
+	   Perhaps use a large sans-serif for distinction. */
+	h1,h2,h3,h4,h5,h6 {
+		color: #000!important;
+		height: auto;
+		line-height: normal;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		text-shadow: 0 0 0 #000 !important;
+		text-align: left;
+		letter-spacing: normal;
+	}
+	/* Need to reduce the size of the fonts for printing */
+	h1 { font-size: 28pt !important;  }
+	h2 { font-size: 24pt !important; }
+	h3 { font-size: 22pt !important; }
+	h4 { font-size: 22pt !important; font-variant: small-caps; }
+	h5 { font-size: 21pt !important; }
+	h6 { font-size: 20pt !important; font-style: italic; }
+
+	/* SECTION 5: Make hyperlinks more usable.
+	   Ensure links are underlined, and consider appending
+	   the URL to the end of the link for usability. */
+	a:link,
+	a:visited {
+		color: #000 !important;
+		font-weight: bold;
+		text-decoration: underline;
+	}
+	/*
+	.reveal a:link:after,
+	.reveal a:visited:after {
+		content: " (" attr(href) ") ";
+		color: #222 !important;
+		font-size: 90%;
+	}
+	*/
+
+
+	/* SECTION 6: more reveal.js specific additions by @skypanther */
+	ul, ol, div, p {
+		visibility: visible;
+		position: static;
+		width: auto;
+		height: auto;
+		display: block;
+		overflow: visible;
+		margin: 0;
+		text-align: left !important;
+	}
+	.reveal pre,
+	.reveal table {
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.reveal pre code {
+		padding: 20px;
+		border: 1px solid #ddd;
+	}
+	.reveal blockquote {
+		margin: 20px 0;
+	}
+	.reveal .slides {
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 0 !important;
+		zoom: 1 !important;
+
+		overflow: visible !important;
+		display: block !important;
+
+		text-align: left !important;
+		-webkit-perspective: none;
+		   -moz-perspective: none;
+		    -ms-perspective: none;
+		        perspective: none;
+
+		-webkit-perspective-origin: 50% 50%;
+		   -moz-perspective-origin: 50% 50%;
+		    -ms-perspective-origin: 50% 50%;
+		        perspective-origin: 50% 50%;
+	}
+	.reveal .slides section {
+		visibility: visible !important;
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		display: block !important;
+		overflow: visible !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 60px 20px !important;
+		z-index: auto !important;
+
+		opacity: 1 !important;
+
+		page-break-after: always !important;
+
+		-webkit-transform-style: flat !important;
+		   -moz-transform-style: flat !important;
+		    -ms-transform-style: flat !important;
+		        transform-style: flat !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+
+		-webkit-transition: none !important;
+		   -moz-transition: none !important;
+		    -ms-transition: none !important;
+		        transition: none !important;
+	}
+	.reveal .slides section.stack {
+		padding: 0 !important;
+	}
+	.reveal section:last-of-type {
+		page-break-after: avoid !important;
+	}
+	.reveal section .fragment {
+		opacity: 1 !important;
+		visibility: visible !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+	}
+	.reveal section img {
+		display: block;
+		margin: 15px 0px;
+		background: rgba(255,255,255,1);
+		border: 1px solid #666;
+		box-shadow: none;
+	}
+
+	.reveal section small {
+		font-size: 0.8em;
+	}
+
+}  
+</script>
+
+
+<script id="pdf-css" type="application/dynamic-css">
+    
+/**
+ * This stylesheet is used to print reveal.js
+ * presentations to PDF.
+ *
+ * https://github.com/hakimel/reveal.js#pdf-export
+ */
+
+* {
+	-webkit-print-color-adjust: exact;
+}
+
+body {
+	margin: 0 auto !important;
+	border: 0;
+	padding: 0;
+	float: none !important;
+	overflow: visible;
+}
+
+html {
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+/* Remove any elements not needed in print. */
+.nestedarrow,
+.reveal .controls,
+.reveal .progress,
+.reveal .playback,
+.reveal.overview,
+.fork-reveal,
+.share-reveal,
+.state-background {
+	display: none !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	text-shadow: 0 0 0 #000 !important;
+}
+
+.reveal pre code {
+	overflow: hidden !important;
+	font-family: Courier, 'Courier New', monospace !important;
+}
+
+ul, ol, div, p {
+	visibility: visible;
+	position: static;
+	width: auto;
+	height: auto;
+	display: block;
+	overflow: visible;
+	margin: auto;
+}
+.reveal {
+	width: auto !important;
+	height: auto !important;
+	overflow: hidden !important;
+}
+.reveal .slides {
+	position: static;
+	width: 100%;
+	height: auto;
+
+	left: auto;
+	top: auto;
+	margin: 0 !important;
+	padding: 0 !important;
+
+	overflow: visible;
+	display: block;
+
+	-webkit-perspective: none;
+	   -moz-perspective: none;
+	    -ms-perspective: none;
+	        perspective: none;
+
+	-webkit-perspective-origin: 50% 50%; /* there isn't a none/auto value but 50-50 is the default */
+	   -moz-perspective-origin: 50% 50%;
+	    -ms-perspective-origin: 50% 50%;
+	        perspective-origin: 50% 50%;
+}
+
+.reveal .slides section {
+	page-break-after: always !important;
+
+	visibility: visible !important;
+	position: relative !important;
+	display: block !important;
+	position: relative !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+	box-sizing: border-box !important;
+	min-height: 1px;
+
+	opacity: 1 !important;
+
+	-webkit-transform-style: flat !important;
+	   -moz-transform-style: flat !important;
+	    -ms-transform-style: flat !important;
+	        transform-style: flat !important;
+
+	-webkit-transform: none !important;
+	   -moz-transform: none !important;
+	    -ms-transform: none !important;
+	        transform: none !important;
+}
+
+.reveal section.stack {
+	margin: 0 !important;
+	padding: 0 !important;
+	page-break-after: avoid !important;
+	height: auto !important;
+	min-height: auto !important;
+}
+
+.reveal img {
+	box-shadow: none;
+}
+
+.reveal .roll {
+	overflow: visible;
+	line-height: 1em;
+}
+
+/* Slide backgrounds are placed inside of their slide when exporting to PDF */
+.reveal section .slide-background {
+	display: block !important;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	z-index: -1;
+}
+
+/* All elements should be above the slide-background */
+.reveal section>* {
+	position: relative;
+	z-index: 1;
+}
+
+/* Display slide speaker notes when 'showNotes' is enabled */
+.reveal .speaker-notes-pdf {
+	display: block;
+	width: 100%;
+	max-height: none;
+	left: auto;
+	top: auto;
+	z-index: 100;
+}
+
+/* Display slide numbers when 'slideNumber' is enabled */
+.reveal .slide-number-pdf {
+	display: block;
+	position: absolute;
+	font-size: 14px;
+}
+
+</script>
+
+
+<script>
+var style = document.createElement( 'style' );
+style.type = 'text/css';
+var style_script_id = window.location.search.match( /print-pdf/gi ) ? 'pdf-css' : 'paper-css';
+var style_script = document.getElementById(style_script_id).text;
+style.innerHTML = style_script;
+document.getElementsByTagName('head')[0].appendChild(style);
+</script>
+
+    <link rel="stylesheet" href="http://s3.amazonaws.com/static.slid.es/fonts/merriweathersans/merriweathersans.css">
+    <link rel="stylesheet" href="http://s3.amazonaws.com/static.slid.es/fonts/oxygen/oxygen.css">
+    <link href="2019.08.20_CINDAY_RUG_files/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+    <link href="2019.08.20_CINDAY_RUG_files/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+    <h1 class="title"><b>Tidy</b> Forecasting<br>in <b>R</b><br>with Tidyverts</h1>
+    <h2 class="author">Eugene Pyatigorsky / Full Stack Science</h2>
+    <h3 class="date"><b>CIN-DAY RUG</b> August 2019</h3>
+</section>
+
+<section class="slide level2">
+
+<p>The slides at: <a href="https://github.com/epspi/CINDAY_RUG_2019.08.20" class="uri">https://github.com/epspi/CINDAY_RUG_2019.08.20</a></p>
+</section>
+<section id="agenda" class="slide level2">
+<h2>Agenda</h2>
+<ul>
+<li class="fragment">What have Rob Hyndman &amp; Monash Team been up to?</li>
+<li class="fragment">From <code>ts</code> to <strong>tidy</strong> data (<strong>tsibble</strong> by Earo Wang)</li>
+<li class="fragment">Time series visualization and feature extraction (<strong>feasts</strong>)</li>
+<li class="fragment">Tidy modeling framework (<strong>fable</strong>)</li>
+<li class="fragment">Extensibility, custom models (<strong>fasSter</strong> by Mitchell O’Hara-Wild)</li>
+</ul>
+</section>
+<section class="slide level2">
+
+<p>Let’s make one thing clear…</p>
+<p><strong>All of this tidy forecasting goodness is brought to you by Hyndman, et. al.</strong></p>
+</section>
+<section class="slide level2">
+
+<figure>
+<img data-src="figures/earo.png" alt="Earo Wang @ earo.me" /><figcaption>Earo Wang @ earo.me</figcaption>
+</figure>
+</section>
+<section class="slide level2">
+
+<figure>
+<img data-src="figures/mitchell.png" alt="Mitchell O’Hara-Wild @ mitchelloharawild.com" /><figcaption>Mitchell O’Hara-Wild @ mitchelloharawild.com</figcaption>
+</figure>
+</section>
+<section class="slide level2">
+
+<figure>
+<img data-src="figures/di.png" alt="Di Cook @ dicook.org" /><figcaption>Di Cook @ dicook.org</figcaption>
+</figure>
+</section>
+<section class="slide level2">
+
+<p><img data-src="figures/mitchell-slides.png" /></p>
+</section>
+<section class="slide level2">
+
+<p><img data-src="figures/cindayrug.png" alt="CIN-DAY RUG March 2018 @ P&amp;G" /> <a href="https://github.com/epspi/CIN-DAY_RUG_03.14.2018" class="uri">https://github.com/epspi/CIN-DAY_RUG_03.14.2018</a></p>
+</section>
+<section class="slide level2">
+
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/ohiOPyFsrqQ" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+</iframe>
+</section>
+<section class="slide level2">
+
+<figure>
+<img data-src="figures/traffic.png" alt="Cincinnati Building Permits since 2010" /><figcaption>Cincinnati Building Permits since 2010</figcaption>
+</figure>
+</section>
+<section id="fetch-and-wrangle" class="slide level2">
+<h2>Fetch and wrangle</h2>
+<pre><code>## Observations: 190,048
+## Variables: 4
+## $ CRASHDATE        &lt;dttm&gt; 2019-07-26 23:00:00, 2019-07-26 23:00:00, 2015…
+## $ SNA_NEIGHBORHOOD &lt;chr&gt; &quot;CORRYVILLE&quot;, &quot;CORRYVILLE&quot;, &quot;NORTH AVONDALE - P…
+## $ CRASHSEVERITY    &lt;chr&gt; &quot;5&quot;, &quot;5&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;3&quot;, &quot;2…
+## $ GENDER           &lt;chr&gt; &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;MALE&quot;, &quot;FEMALE&quot;, &quot;MALE&quot;, &quot;…</code></pre>
+<p><a href="https://data.cincinnati-oh.gov/Safer-Streets/Traffic-Crash-Reports-CPD-/rvmt-pkmq/data">Cincinnati Traffic Crash Reports (CPD)</a></p>
+</section>
+<section class="slide level2">
+
+<h3 id="a-data-frame-for-time-series">A data frame for time series</h3>
+<p><img data-src="figures/tsibble.png" /></p>
+</section>
+<section class="slide level2">
+
+<p><code>as_tsibble</code></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">traffic_ts =<span class="st"> </span>traffic <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="st">  </span>.[, .(<span class="dt">accidents =</span> .N)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">    , by =<span class="st"> </span>.(CRASHDATE, SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER)] <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="st">  </span><span class="kw">as_tsibble</span>(<span class="dt">key   =</span> <span class="kw">c</span>(SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER),</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">             <span class="dt">index =</span> CRASHDATE)</a></code></pre></div>
+<pre><code>## Observations: 137,314
+## Variables: 5
+## Key: SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER [480]
+## $ CRASHDATE        &lt;dttm&gt; 2013-02-24 02:04:00, 2014-01-16 15:05:00, 2014…
+## $ SNA_NEIGHBORHOOD &lt;chr&gt; &quot;AVONDALE&quot;, &quot;AVONDALE&quot;, &quot;AVONDALE&quot;, &quot;AVONDALE&quot;,…
+## $ CRASHSEVERITY    &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1…
+## $ GENDER           &lt;chr&gt; &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE…
+## $ accidents        &lt;int&gt; 2, 3, 1, 1, 3, 1, 1, 3, 2, 1, 1, 1, 1, 2, 1, 1,…</code></pre>
+</section>
+<section id="easy-calendar-aggregations" class="slide level2">
+<h2>Easy Calendar Aggregations</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">traffic_hrly =<span class="st"> </span>traffic_ts <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="st">  </span><span class="kw">group_by_key</span>() <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="st">  </span><span class="kw">index_by</span>(<span class="dt">date_hour =</span> <span class="op">~</span>lubridate<span class="op">::</span><span class="kw">floor_date</span>(., <span class="dt">unit =</span> <span class="st">&quot;hour&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">accidents =</span> <span class="kw">sum</span>(accidents)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="st">  </span><span class="kw">ungroup</span>()</a></code></pre></div>
+<pre><code>## Observations: 133,832
+## Variables: 5
+## Key: SNA_NEIGHBORHOOD, CRASHSEVERITY, GENDER [480]
+## Groups: SNA_NEIGHBORHOOD, CRASHSEVERITY [248]
+## $ SNA_NEIGHBORHOOD &lt;chr&gt; &quot;AVONDALE&quot;, &quot;AVONDALE&quot;, &quot;AVONDALE&quot;, &quot;AVONDALE&quot;,…
+## $ CRASHSEVERITY    &lt;chr&gt; &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1&quot;, &quot;1…
+## $ GENDER           &lt;chr&gt; &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE&quot;, &quot;FEMALE…
+## $ date_hour        &lt;dttm&gt; 2013-02-24 02:00:00, 2014-01-16 15:00:00, 2014…
+## $ accidents        &lt;int&gt; 2, 3, 1, 1, 3, 1, 1, 3, 2, 1, 1, 1, 1, 2, 1, 1,…</code></pre>
+</section>
+<section class="slide level2">
+
+<p class="purple">
+what about missing data?
+</p>
+<p>traditional approaches</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">data.table</span>(traffic_hrly) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">  </span>.[, .N, by =<span class="st"> </span>.(<span class="dt">hour =</span> lubridate<span class="op">::</span><span class="kw">hour</span>(date_hour))] <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="st">  </span><span class="kw">head</span>()</a></code></pre></div>
+<pre><code>##    hour     N
+## 1:    2  2053
+## 2:   15 10904
+## 3:    3  1253
+## 4:    0  2554
+## 5:   18  8289
+## 6:    6  3109</code></pre>
+</section>
+<section class="slide level2">
+
+<p><code>has_gaps</code> helper</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">has_gaps</span>(traffic_hrly) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">sample_n</span>(<span class="dv">5</span>) </a></code></pre></div>
+<pre><code>## # A tibble: 5 x 4
+##   SNA_NEIGHBORHOOD CRASHSEVERITY GENDER .gaps
+##   &lt;chr&gt;            &lt;chr&gt;         &lt;chr&gt;  &lt;lgl&gt;
+## 1 CALIFORNIA       1             MALE   TRUE 
+## 2 WEST PRICE HILL  4             MALE   TRUE 
+## 3 MT. AIRY         5             FEMALE TRUE 
+## 4 AVONDALE         4             FEMALE TRUE 
+## 5 ROSELAWN         2             FEMALE TRUE</code></pre>
+</section>
+<section class="slide level2">
+
+<p><code>count_gaps</code> helper</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">count_gaps</span>(traffic_hrly) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">sample_n</span>(<span class="dv">5</span>)</a></code></pre></div>
+</section>
+<section class="slide level2">
+
+<h3 id="pad-implicit-missing-values">pad implicit missing values</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">traffic_hrly =<span class="st"> </span>traffic_hrly <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">fill_gaps</span>(<span class="dt">accidents =</span> <span class="dv">0</span>)</a></code></pre></div>
+</section>
+<section class="slide level2">
+
+<h3 id="functional-rolling-windows">Functional rolling windows</h3>
+<figure>
+<img data-src="figures/rollwindow.gif" alt="slide, tile, stretch" /><figcaption><code>slide</code>, <code>tile</code>, <code>stretch</code></figcaption>
+</figure>
+</section>
+<section id="time-series-decomposition-plotting-helpers" class="slide level2">
+<h2>Time Series Decomposition &amp; Plotting Helpers</h2>
+<figure>
+<img data-src="figures/feasts.png" alt="feasts @ tidyverts" /><figcaption>feasts @ tidyverts</figcaption>
+</figure>
+</section>
+<section id="tidy-modeling" class="slide level2">
+<h2>Tidy modeling</h2>
+<figure>
+<img data-src="figures/fable.png" alt="fable @ tidyverts" /><figcaption>fable @ tidyverts</figcaption>
+</figure>
+</section>
+<section id="pipeline-workflows" class="slide level2">
+<h2>Pipeline workflows!</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">traffic_sm =<span class="st"> </span>traffic_hrly <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="st">  </span><span class="kw">index_by</span>(<span class="dt">date =</span> <span class="kw">yearweek</span>(date_hour)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="st">  </span><span class="kw">summarise</span>(<span class="dt">accidents =</span> <span class="kw">sum</span>(accidents))</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">traffic_sm <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6"><span class="st">  </span><span class="kw">model</span>(<span class="kw">ETS</span>(accidents)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"><span class="st">  </span><span class="kw">forecast</span>(<span class="dt">h =</span> <span class="st">&quot;3 months&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8"><span class="st">  </span><span class="kw">autoplot</span>(traffic_sm)</a></code></pre></div>
+<p><img data-src="2019.08.20_CINDAY_RUG_files/figure-revealjs/unnamed-chunk-11-1.png" /><!-- --></p>
+</section>
+<section class="slide level2">
+
+<p><img data-src="figures/mitchell-fasster.png" /></p>
+</section>
+<section id="tons-of-flexibility" class="slide level2">
+<h2>Tons of flexibility</h2>
+<p><img data-src="figures/fasster-specials.png" /></p>
+</section>
+<section id="in-theory-its-this-easy" class="slide level2">
+<h2>In theory it’s this easy!</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">traffic_hrly <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="st">  </span><span class="kw">model</span>(</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">    <span class="dt">ets  =</span> <span class="kw">ETS</span>(accidents),</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">    <span class="dt">fstr =</span> <span class="kw">fasster</span>(accidents <span class="op">~</span><span class="st"> </span>weekday <span class="op">%S%</span><span class="st"> </span>(<span class="kw">trig</span>(<span class="dv">24</span>, <span class="dv">16</span>) <span class="op">+</span><span class="st"> </span><span class="kw">poly</span>(<span class="dv">2</span>)))</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5">  ) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6"><span class="st">  </span><span class="kw">mutate</span>(</a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">    <span class="dt">ensemble =</span> (ets <span class="op">+</span><span class="st"> </span>fstr)<span class="op">/</span><span class="dv">2</span></a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">  ) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-9" data-line-number="9"><span class="st">  </span><span class="kw">select</span>(ensemble) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-10" data-line-number="10"><span class="st">  </span><span class="kw">forecast</span>(<span class="dt">h =</span> <span class="st">&quot;3 months&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-11" data-line-number="11"><span class="st">  </span><span class="kw">autoplot</span>(traffic_hrly)</a></code></pre></div>
+</section>
+<section class="slide level2">
+
+<p><strong>questions?</strong></p>
+</section>
+    </div>
+  </div>
+
+  <script src="2019.08.20_CINDAY_RUG_files/reveal.js-3.3.0.1/lib/js/head.min.js"></script>
+  <script src="2019.08.20_CINDAY_RUG_files/reveal.js-3.3.0.1/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        // Display the page number of the current slide
+        slideNumber: true,
+        // Push each slide change to the browser history
+        history: true,
+        // Vertical centering of slides
+        center: true,
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+        // Transition style
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+
+
+        chalkboard: {
+        },
+
+        keyboard: {
+          67: function() { RevealChalkboard.toggleNotesCanvas() },    // toggle notes canvas when 'c' is pressed
+          66: function() { RevealChalkboard.toggleChalkboard() }, // toggle chalkboard when 'b' is pressed
+          46: function() { RevealChalkboard.clear() },    // clear chalkboard when 'DEL' is pressed
+           8: function() { RevealChalkboard.reset() },    // reset chalkboard data on current slide when 'BACKSPACE' is pressed
+          68: function() { RevealChalkboard.download() }, // downlad recorded chalkboard drawing when 'd' is pressed
+        },
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: '2019.08.20_CINDAY_RUG_files/reveal.js-3.3.0.1/plugin/chalkboard/chalkboard.js', async: true },
+        ]
+      });
+    </script>
+  <!-- dynamically load mathjax for compatibility with self-contained -->
+  <script>
+    (function () {
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+      document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+  </script>
+
+<script>
+  (function() {
+    if (window.jQuery) {
+      Reveal.addEventListener( 'slidechanged', function(event) {  
+        window.jQuery(event.previousSlide).trigger('hidden');
+        window.jQuery(event.currentSlide).trigger('shown');
+      });
+    }
+  })();
+</script>
+
+
+  </body>
+</html>
